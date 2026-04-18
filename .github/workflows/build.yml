@@ -3,9 +3,13 @@ name: Build Skill
 on:
   push:
     branches: ["**"]
+    tags: ["v*.*.*"]
   pull_request:
     branches: ["**"]
   workflow_dispatch:
+
+permissions:
+  contents: write # required to create Releases with the default GITHUB_TOKEN
 
 jobs:
   build:
@@ -14,9 +18,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Validate SKILL.md frontmatter
+        id: validate
         run: |
           python3 - <<'PY'
-          import re, sys, pathlib
+          import os, pathlib, re, sys
           p = pathlib.Path("SKILL.md")
           if not p.exists():
               sys.exit("SKILL.md missing")
@@ -25,27 +30,49 @@ jobs:
           if not m:
               sys.exit("YAML frontmatter missing (must start with --- ... ---)")
           fm = m.group(1)
-          for field in ("name", "description"):
-              match = re.search(rf"(?m)^{field}:\s*(\S.*)$", fm)
-              if not match or match.group(1).strip().startswith("REPLACE-ME"):
-                  sys.exit(f"frontmatter field '{field}' is missing, empty, or still the template placeholder")
-          print("SKILL.md frontmatter looks valid")
+          name_m = re.search(r"(?m)^name:\s*(\S.*)$", fm)
+          if not name_m or name_m.group(1).strip().startswith("REPLACE-ME"):
+              sys.exit("frontmatter field 'name' is missing, empty, or still the template placeholder")
+          desc_m = re.search(r"(?m)^description:\s*(\S.*)$", fm)
+          if not desc_m or desc_m.group(1).strip().startswith("REPLACE-ME"):
+              sys.exit("frontmatter field 'description' is missing, empty, or still the template placeholder")
+          name = name_m.group(1).strip()
+          with open(os.environ["GITHUB_OUTPUT"], "a") as f:
+              f.write(f"skill_name={name}\n")
+          print(f"SKILL.md frontmatter looks valid (name='{name}')")
           PY
 
       - name: Package skill
+        id: package
         run: |
-          NAME=$(python3 -c "import re,pathlib; t=pathlib.Path('SKILL.md').read_text(); print(re.search(r'(?m)^name:\s*(\S+)', t).group(1))")
+          NAME="${{ steps.validate.outputs.skill_name }}"
+          REPO_DIR="$(pwd)"
           mkdir -p dist
-          tar \
-            --exclude='./.git' \
-            --exclude='./.github' \
-            --exclude='./dist' \
-            -czf "dist/${NAME}.skill.tar.gz" .
+          # .skill = zip archive of the skill dir (matches package_skill.py format).
+          # Files inside the archive are prefixed with <NAME>/ so unpacking a
+          # release drops cleanly into .claude/skills/<NAME>/.
+          STAGE="$(mktemp -d)"
+          mkdir -p "$STAGE/$NAME"
+          rsync -a \
+            --exclude='.git' \
+            --exclude='.github' \
+            --exclude='dist' \
+            ./ "$STAGE/$NAME/"
+          ( cd "$STAGE" && zip -qr "${REPO_DIR}/dist/${NAME}.skill" "$NAME" )
           ls -lh dist/
+          echo "artifact_path=dist/${NAME}.skill" >> "$GITHUB_OUTPUT"
 
-      - name: Upload artifact
+      - name: Upload CI artifact
         uses: actions/upload-artifact@v4
         with:
-          name: skill-package
-          path: dist/*.skill.tar.gz
+          name: ${{ steps.validate.outputs.skill_name }}.skill
+          path: ${{ steps.package.outputs.artifact_path }}
           if-no-files-found: error
+
+      - name: Attach to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ steps.package.outputs.artifact_path }}
+          fail_on_unmatched_files: true
+          generate_release_notes: true
