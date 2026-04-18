@@ -1,0 +1,51 @@
+name: Build Skill
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: ["**"]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Validate SKILL.md frontmatter
+        run: |
+          python3 - <<'PY'
+          import re, sys, pathlib
+          p = pathlib.Path("SKILL.md")
+          if not p.exists():
+              sys.exit("SKILL.md missing")
+          text = p.read_text()
+          m = re.match(r"^---\n(.*?)\n---\n", text, re.DOTALL)
+          if not m:
+              sys.exit("YAML frontmatter missing (must start with --- ... ---)")
+          fm = m.group(1)
+          for field in ("name", "description"):
+              match = re.search(rf"(?m)^{field}:\s*(\S.*)$", fm)
+              if not match or match.group(1).strip().startswith("REPLACE-ME"):
+                  sys.exit(f"frontmatter field '{field}' is missing, empty, or still the template placeholder")
+          print("SKILL.md frontmatter looks valid")
+          PY
+
+      - name: Package skill
+        run: |
+          NAME=$(python3 -c "import re,pathlib; t=pathlib.Path('SKILL.md').read_text(); print(re.search(r'(?m)^name:\s*(\S+)', t).group(1))")
+          mkdir -p dist
+          tar \
+            --exclude='./.git' \
+            --exclude='./.github' \
+            --exclude='./dist' \
+            -czf "dist/${NAME}.skill.tar.gz" .
+          ls -lh dist/
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: skill-package
+          path: dist/*.skill.tar.gz
+          if-no-files-found: error

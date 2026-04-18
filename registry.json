@@ -1,0 +1,75 @@
+{
+  "org": "PJ-SBN-593844",
+  "skills": [
+    {
+      "name": "brain-access",
+      "repo": "git@github.com:PJ-SBN-593844/skill-brain-access.git",
+      "description": "Use when the user wants to manage API keys, tenant memberships, or access control. Activate when the conversation involves creating/revoking API keys, adding/removing users from tenants, changing user roles, or managing access credentials."
+    },
+    {
+      "name": "brain-files",
+      "repo": "git@github.com:PJ-SBN-593844/skill-brain-files.git",
+      "description": "Use when the user wants to upload, download, list, or delete files, or attach/detach files to note parts. Activate when the conversation involves file management, file attachments, or MinIO-backed storage in the Brain platform."
+    },
+    {
+      "name": "brain-note-groups",
+      "repo": "git@github.com:PJ-SBN-593844/skill-brain-note-groups.git",
+      "description": "Use when the user wants to create, manage, or organize notes into groups. Activate when the conversation involves note grouping, collections, projects grouping notes, adding/removing notes from groups, or listing groups within a tenant."
+    },
+    {
+      "name": "brain-notes",
+      "repo": "git@github.com:PJ-SBN-593844/skill-brain-notes.git",
+      "description": "Use when the user wants to create, read, update, delete, archive, or share notes through the Brain MCP server. Activate when the conversation involves note content, note visibility, note sharing/permissions, archiving, or listing notes within a tenant."
+    },
+    {
+      "name": "brain-search",
+      "repo": "git@github.com:PJ-SBN-593844/skill-brain-search.git",
+      "description": "Use when the user wants to search across notes and atomic parts. Activate when the conversation involves finding notes by content, semantic search, or full-text search in the Brain platform."
+    },
+    {
+      "name": "brain-tenants",
+      "repo": "git@github.com:PJ-SBN-593844/skill-brain-tenants.git",
+      "description": "Use when the user wants to create, manage, or switch tenants, or generate tenant-scoped API tokens. Activate when the conversation involves tenant CRUD, multi-tenancy, or generating scoped tokens for a specific tenant."
+    },
+    {
+      "name": "deploy",
+      "repo": "git@github.com:PJ-SBN-593844/skill-deploy.git",
+      "description": "Deploy a tagged release to the k3s cluster via Helm. Use when the user wants to deploy, roll out, or ship a version. Handles release-pull mode (download binary from GitHub Release) and verifies the deployment is healthy before reporting success."
+    },
+    {
+      "name": "mcp-builder",
+      "repo": "git@github.com:PJ-SBN-593844/skill-mcp-builder.git",
+      "description": "Guide for creating high-quality MCP (Model Context Protocol) servers that enable LLMs to interact with external services through well-designed tools. Use when building MCP servers to integrate external APIs or services, whether in Python (FastMCP) or Node/TypeScript (MCP SDK)."
+    },
+    {
+      "name": "skill-creator",
+      "repo": "git@github.com:PJ-SBN-593844/skill-skill-creator.git",
+      "description": "Create new skills, modify and improve existing skills, and measure skill performance. Use when users want to create a skill from scratch, edit, or optimize an existing skill, run evals to test a skill, benchmark skill performance with variance analysis, or optimize a skill's description for better triggering accuracy."
+    },
+    {
+      "name": "skill-router",
+      "repo": "git@github.com:PJ-SBN-593844/skill-skill-router.git",
+      "description": "Catalog, fetch, and install skills from the PJ-SBN-593844 GitHub organization on demand. Maintains a registry of known skill repos and manages them as git submodules under .claude/skills/."
+    },
+    {
+      "name": "tag-create",
+      "repo": "git@github.com:PJ-SBN-593844/skill-tag-create.git",
+      "description": "Compute the next strict semver tag (v*.*.*) from conventional-commit history and create an annotated local tag with a grouped changelog body. Use when the user wants to cut a release locally without pushing. Does not push."
+    },
+    {
+      "name": "tag-push",
+      "repo": "git@github.com:PJ-SBN-593844/skill-tag-push.git",
+      "description": "Push an existing local v*.*.* tag to origin. Use when the user explicitly asks to publish a release tag. Pushing a v* tag triggers the CI release build, so this skill requires explicit confirmation and never force-pushes."
+    },
+    {
+      "name": "tag-release",
+      "repo": "git@github.com:PJ-SBN-593844/skill-tag-release.git",
+      "description": "Cut a release end-to-end — compute the next v*.*.* tag from commits, create the annotated tag locally, then push to origin. Use when the user wants a single command that publishes a release. Includes an explicit confirmation gate before pushing because pushing a v* tag triggers the CI release build."
+    },
+    {
+      "name": "working-with-rules",
+      "repo": "git@github.com:PJ-SBN-593844/skill-working-with-rules.git",
+      "description": "Enforces all project rules from memory-bank/rules/. This skill MUST be followed at all times during any task — it loads every rule file and requires strict compliance."
+    }
+  ]
+}
