@@ -1,0 +1,63 @@
+Tri2b Community Source Licence v1.0
+
+Copyright © 2025 Tri2b (PTY) LTD. All rights reserved.
+
+This Licence governs viewing, use, modification, distribution, and contribution
+to the software and documentation (the "Software") in this repository.
+
+1. Viewing and study.
+   Anyone may view, read, and study the Software without restriction. The
+   Software is published publicly to enable transparency and community
+   contribution.
+
+2. Use requires written authorisation.
+   You may not use, copy, modify, run, execute, distribute, or create
+   derivative works of the Software for any purpose (including internal,
+   commercial, or non-commercial use) without prior written authorisation
+   from Tri2b (PTY) LTD. Authorisation may be granted by email, GitHub issue
+   reply, or any written medium, to you personally or to an organisation you
+   represent.
+
+3. Terms once authorised.
+   Once Tri2b (PTY) LTD grants you written authorisation, your use,
+   modification, and distribution of the Software are additionally governed
+   by the terms of the GNU General Public License, version 3 ("GPLv3"), a
+   copy of which is included as LICENSE.gpl-3.0. Where this Licence and
+   GPLv3 conflict, this Licence prevails within the scope of your
+   authorisation.
+
+4. Contributions.
+   Contributions (pull requests, patches, issues with suggested changes) are
+   welcome from anyone without prior authorisation. By submitting a
+   contribution you grant Tri2b (PTY) LTD a perpetual, worldwide,
+   non-exclusive, royalty-free, sublicensable licence to reproduce, modify,
+   publish, distribute, and relicense your contribution under this Licence
+   or any successor licence Tri2b (PTY) LTD selects. You represent that you
+   have the right to make that grant and that your contribution is your
+   original work.
+
+5. Attribution.
+   Any copy or derivative work you distribute under authorisation must
+   retain this Licence notice, the copyright notice above, and the
+   LICENSE.gpl-3.0 file.
+
+6. Reservation of rights.
+   Tri2b (PTY) LTD retains all rights not expressly granted. No ownership
+   rights are transferred by this Licence. Unauthorised use, reproduction,
+   or distribution is prohibited and may constitute copyright infringement.
+
+7. Termination.
+   This Licence and any authorisation granted under it remain effective
+   until terminated. Tri2b (PTY) LTD may terminate immediately if you fail
+   to comply with any term. Upon termination you must cease all use and
+   destroy all copies in your possession.
+
+8. Disclaimer.
+   The Software is provided "AS IS" without warranty of any kind, express
+   or implied, including but not limited to warranties of merchantability,
+   fitness for a particular purpose, and non-infringement. In no event
+   shall Tri2b (PTY) LTD be liable for any claim, damages, or other
+   liability arising from the use of the Software.
+
+9. Requesting authorisation.
+   To request authorisation, contact synapse@tri2b.cloud.
