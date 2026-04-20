@@ -1,13 +1,19 @@
-# Skill Template
+# skill-router
 
-This is the scaffold used by `skill-creator`'s publish flow to seed every new skill repository. When `publish_skill.sh` runs, it copies the contents of this directory into the new skill's initial commit (unless the skill already provides its own version of a file).
+> Catalog, install, remove, and sync skills that live as git submodules under .claude/skills/. Maintains a versioned registry of known skill repos with their descriptions. Use whenever the user asks which skills exist, wants to install/fetch/sync/remove a skill, wants to register a newly published skill, or starts a task that would benefit from a skill that is not yet installed locally. Trigger proactively when a request maps to a registered skill (e.g. notes, tenants, tags, deploys, MCP servers, rules) and that skill is not yet under .claude/skills/.
 
-## What's inside
+Loaded by Claude Code when the description above matches the user's request. Full instructions live in [`SKILL.md`](./SKILL.md).
 
-- `SKILL.md` — placeholder with the required frontmatter shape
-- `.github/workflows/build.yml` — CI that validates the frontmatter and packages the skill as a tarball artifact on every push
-- `.gitignore` — sensible defaults
+## Install
 
-## Editing the template
+From a repo that has [`skill-router`](https://github.com/PJ-SBN-593844/skill-skill-router) installed:
 
-Changes here affect **future** skill repos only. Existing published skill repos keep whatever pipeline they were initialised with — bump them individually if you want the new template.
+```sh
+.claude/skills/skill-router/scripts/install.sh skill-router
+```
+
+Installs the skill as a git submodule under `.claude/skills/skill-router/`.
+
+## License
+
+Tri2b Community Source Licence v1.0 — see [`LICENSE`](./LICENSE).
