@@ -1,11 +1,13 @@
 #!/usr/bin/env bash
-# Install a registered skill as a git submodule under .claude/skills/<name>/.
+# Install a skill from the Brain /skills proxy.
 #
 # Usage:
 #   scripts/install.sh <name>
 #
-# The repo URL is looked up in registry.json. The skill must already be
-# registered — add it with register.sh first if not.
+# Downloads GET {BRAIN_URL}/skills/<name>/download (a zip where files
+# are prefixed with <name>/) and unpacks it into .claude/skills/. The
+# skill is installed as a plain directory — there is no git submodule
+# to commit in the parent repo.
 
 set -euo pipefail
 
@@ -16,44 +18,41 @@ if [ -z "$NAME" ]; then
 fi
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REGISTRY="$SCRIPT_DIR/../registry.json"
-ROOT="$(git rev-parse --show-toplevel)"
-DEST_REL=".claude/skills/$NAME"
-DEST_ABS="$ROOT/$DEST_REL"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/_env.sh"
 
-[ -f "$REGISTRY" ] || { echo "registry not found: $REGISTRY" >&2; exit 2; }
+require_cmd unzip
 
-URL="$(jq -r --arg n "$NAME" '.skills[] | select(.name == $n) | .repo' "$REGISTRY")"
-if [ -z "$URL" ] || [ "$URL" = "null" ]; then
-  echo "[skill-router] $NAME is not in registry.json — register it first with register.sh" >&2
+DEST="$SKILLS_DIR/$NAME"
+if [ -e "$DEST" ]; then
+  echo "[skill-router] $DEST already exists — remove it first with scripts/remove.sh or move it aside." >&2
   exit 1
 fi
 
-# Already a submodule? No-op.
-if git -C "$ROOT" config -f .gitmodules --get "submodule.${DEST_REL}.path" >/dev/null 2>&1; then
-  echo "[skill-router] $NAME already installed as submodule."
-  exit 0
-fi
+TMP="$(mktemp -t "skill-${NAME}.XXXXXX.skill")"
+trap 'rm -f "$TMP"' EXIT
 
-# Plain directory in the way? Refuse — caller must remove or migrate it.
-if [ -e "$DEST_ABS" ]; then
-  echo "[skill-router] $DEST_REL exists but is not a submodule." >&2
-  echo "               Remove or migrate it manually before installing." >&2
+echo "[skill-router] downloading $NAME from $BRAIN_URL"
+if ! brain_download "/skills/$NAME/download" "$TMP"; then
   exit 1
 fi
 
-echo "[skill-router] adding submodule $NAME -> $URL"
-git -C "$ROOT" submodule add "$URL" "$DEST_REL"
-
-if [ ! -f "$DEST_ABS/SKILL.md" ]; then
-  echo "[skill-router] cloned repo has no top-level SKILL.md — rolling back." >&2
-  git -C "$ROOT" submodule deinit -f "$DEST_REL" >/dev/null 2>&1 || true
-  git -C "$ROOT" rm -f "$DEST_REL" >/dev/null 2>&1 || true
-  rm -rf "$ROOT/.git/modules/$DEST_REL"
+# .skill is a zip; unzip --test to catch corruption before we touch SKILLS_DIR.
+if ! unzip -tqq "$TMP" >/dev/null 2>&1; then
+  echo "[skill-router] downloaded file is not a valid zip" >&2
   exit 1
 fi
 
-cat <<DONE
-[skill-router] installed $NAME at $DEST_REL
-  Next: review and commit .gitmodules + $DEST_REL in the parent repo.
-DONE
+mkdir -p "$SKILLS_DIR"
+if ! unzip -q "$TMP" -d "$SKILLS_DIR"; then
+  echo "[skill-router] failed to unpack into $SKILLS_DIR" >&2
+  exit 1
+fi
+
+if [ ! -f "$DEST/SKILL.md" ]; then
+  echo "[skill-router] installed archive has no SKILL.md at $DEST — rolling back." >&2
+  rm -rf "$DEST"
+  exit 1
+fi
+
+echo "[skill-router] installed $NAME at $DEST"

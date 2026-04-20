@@ -1,18 +1,20 @@
 # skill-router
 
-> Catalog, install, remove, and sync skills that live as git submodules under .claude/skills/. Maintains a versioned registry of known skill repos with their descriptions. Use whenever the user asks which skills exist, wants to install/fetch/sync/remove a skill, wants to register a newly published skill, or starts a task that would benefit from a skill that is not yet installed locally. Trigger proactively when a request maps to a registered skill (e.g. notes, tenants, tags, deploys, MCP servers, rules) and that skill is not yet under .claude/skills/.
+> Catalog, install, remove, and sync Claude Code skills via the Synapse Brain /skills proxy. Skills are plain directories under .claude/skills/ — no git submodules, no GitHub auth on the client. Use whenever the user asks which skills exist, wants to install/fetch/sync/remove a skill, or starts a task that would benefit from a registered skill that is not yet installed locally. Trigger proactively when a request maps to a known skill (e.g. notes, tenants, tags, deploys, MCP servers, rules) and that skill is not yet under .claude/skills/.
 
 Loaded by Claude Code when the description above matches the user's request. Full instructions live in [`SKILL.md`](./SKILL.md).
 
 ## Install
 
-From a repo that has [`skill-router`](https://github.com/PJ-SBN-593844/skill-skill-router) installed:
+The router is self-installing once any copy of `skill-router` lives under `.claude/skills/`. From any host repo:
 
 ```sh
-.claude/skills/skill-router/scripts/install.sh skill-router
+curl -fsSL https://brain.tri2b.nba/skills/skill-router/download -o /tmp/skill-router.skill
+mkdir -p .claude/skills
+unzip -q /tmp/skill-router.skill -d .claude/skills
 ```
 
-Installs the skill as a git submodule under `.claude/skills/skill-router/`.
+Override the Brain URL with the `SYNAPSE_BRAIN_URL` env var if you're pointing at a different instance.
 
 ## License
 

@@ -1,48 +1,55 @@
 #!/usr/bin/env bash
-# Update skill submodules to the latest commit on their remote default branch.
+# Update installed skills to the latest .skill release on Brain.
 #
 # Usage:
-#   scripts/sync.sh            # update every installed skill submodule
+#   scripts/sync.sh            # update every installed skill
 #   scripts/sync.sh <name>     # update just that skill
 #
-# Runs `git submodule update --remote --merge`. Commit the pointer bump in the
-# parent repo afterwards if you want to pin to the new version.
+# Sync removes the existing directory and re-runs install, so the
+# on-disk state matches the current release. Protected skills
+# (skill-creator, skill-router) are skipped when syncing all.
 
 set -euo pipefail
 
-ROOT="$(git rev-parse --show-toplevel)"
-NAME="${1:-}"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/_env.sh"
 
-if [ -n "$NAME" ]; then
-  DEST_REL=".claude/skills/$NAME"
-  if ! git -C "$ROOT" config -f .gitmodules --get "submodule.${DEST_REL}.path" >/dev/null 2>&1; then
-    echo "[skill-router] $NAME is not installed as a submodule." >&2
-    exit 1
+sync_one() {
+  local name="$1"
+  if [ ! -e "$SKILLS_DIR/$name" ]; then
+    echo "[skill-router] $name is not installed." >&2
+    return 1
   fi
-  echo "[skill-router] syncing $NAME"
-  git -C "$ROOT" submodule update --remote --merge "$DEST_REL"
-  exit 0
+  echo "[skill-router] syncing $name"
+  rm -rf "$SKILLS_DIR/$name"
+  "$SCRIPT_DIR/install.sh" "$name"
+}
+
+NAME="${1:-}"
+if [ -n "$NAME" ]; then
+  sync_one "$NAME"
+  exit $?
 fi
 
-# Sync all skill submodules.
-PATHS="$(git -C "$ROOT" config -f .gitmodules \
-  --get-regexp '^submodule\..*\.path$' \
-  | awk '{print $2}' \
-  | awk -F/ '$1==".claude" && $2=="skills" && NF==3')"
-
-if [ -z "$PATHS" ]; then
-  echo "[skill-router] no skill submodules to sync."
-  exit 0
-fi
-
+# Sync all installed skills (excluding protected ones).
 STATUS=0
-while IFS= read -r p; do
-  [ -z "$p" ] && continue
-  echo "[skill-router] syncing $p"
-  if ! git -C "$ROOT" submodule update --remote --merge "$p"; then
-    echo "[skill-router] failed to sync $p — resolve manually." >&2
+if [ ! -d "$SKILLS_DIR" ]; then
+  echo "[skill-router] no skills directory at $SKILLS_DIR"
+  exit 0
+fi
+
+for dir in "$SKILLS_DIR"/*/; do
+  [ -d "$dir" ] || continue
+  name="$(basename "$dir")"
+  if is_protected "$name"; then
+    echo "[skill-router] skipping protected skill: $name"
+    continue
+  fi
+  if ! sync_one "$name"; then
+    echo "[skill-router] failed to sync $name — resolve manually." >&2
     STATUS=1
   fi
-done <<< "$PATHS"
+done
 
 exit $STATUS

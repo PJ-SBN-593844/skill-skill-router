@@ -1,29 +1,28 @@
 #!/usr/bin/env bash
-# List every skill in registry.json with install status.
+# List every skill available from the Brain /skills proxy, with local
+# install status.
 #
-# A skill is "installed" if a submodule is registered for it in .gitmodules.
-# The install column shows: yes | no.
+# Source of truth: GET {BRAIN_URL}/skills. The "installed" column
+# reflects whether a directory with that name exists under
+# .claude/skills/.
 #
 # Usage:
 #   scripts/catalog.sh            # human-readable table
-#   scripts/catalog.sh --json     # registry JSON enriched with install flags
+#   scripts/catalog.sh --json     # Brain response + installed flags
 
 set -euo pipefail
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/_env.sh"
+
+require_cmd jq
+
 FORMAT="${1:-text}"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REGISTRY="$SCRIPT_DIR/../registry.json"
-ROOT="$(git rev-parse --show-toplevel)"
-
-[ -f "$REGISTRY" ] || { echo "registry not found: $REGISTRY" >&2; exit 2; }
-
 INSTALLED_NAMES=""
-if [ -f "$ROOT/.gitmodules" ]; then
-  INSTALLED_NAMES="$(git -C "$ROOT" config -f .gitmodules \
-    --get-regexp '^submodule\..*\.path$' \
-    | awk '{print $2}' \
-    | awk -F/ '$1==".claude" && $2=="skills" && NF==3 {print $3}')"
+if [ -d "$SKILLS_DIR" ]; then
+  INSTALLED_NAMES="$(find "$SKILLS_DIR" -mindepth 1 -maxdepth 1 -type d -exec basename {} \; | sort || true)"
 fi
 
 FLAGS_JSON="{}"
@@ -31,9 +30,11 @@ for name in $INSTALLED_NAMES; do
   FLAGS_JSON="$(printf '%s' "$FLAGS_JSON" | jq --arg n "$name" '. + {($n): true}')"
 done
 
-ENRICHED="$(jq --argjson flags "$FLAGS_JSON" '
+RESPONSE="$(brain_get /skills)"
+
+ENRICHED="$(printf '%s' "$RESPONSE" | jq --argjson flags "$FLAGS_JSON" '
   .skills |= map(. + {installed: ($flags[.name] // false)})
-' "$REGISTRY")"
+')"
 
 if [ "$FORMAT" = "--json" ]; then
   printf '%s\n' "$ENRICHED"

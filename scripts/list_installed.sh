@@ -1,17 +1,20 @@
 #!/usr/bin/env bash
-# List skills currently installed as submodules under .claude/skills/.
+# List skills currently present under .claude/skills/.
 #
-# Source of truth: .gitmodules. A skill is "installed" when there's a submodule
-# entry whose path is .claude/skills/<name>.
+# A skill is "installed" when there's a directory with a SKILL.md under
+# .claude/skills/<name>/. Every other directory is ignored (stale
+# fragments, in-progress drafts, etc.).
 
 set -euo pipefail
 
-ROOT="$(git rev-parse --show-toplevel)"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck disable=SC1091
+source "$SCRIPT_DIR/_env.sh"
 
-[ -f "$ROOT/.gitmodules" ] || exit 0
+[ -d "$SKILLS_DIR" ] || exit 0
 
-git -C "$ROOT" config -f .gitmodules \
-  --get-regexp '^submodule\..*\.path$' \
-  | awk '{print $2}' \
-  | awk -F/ '$1==".claude" && $2=="skills" && NF==3 {print $3}' \
-  | sort
+for dir in "$SKILLS_DIR"/*/; do
+  [ -d "$dir" ] || continue
+  [ -f "$dir/SKILL.md" ] || continue
+  basename "$dir"
+done | sort

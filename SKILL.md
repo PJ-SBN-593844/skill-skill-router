@@ -1,95 +1,74 @@
 ---
 name: skill-router
-description: Catalog, install, remove, and sync skills that live as git submodules under .claude/skills/. Maintains a versioned registry of known skill repos with their descriptions. Use whenever the user asks which skills exist, wants to install/fetch/sync/remove a skill, wants to register a newly published skill, or starts a task that would benefit from a skill that is not yet installed locally. Trigger proactively when a request maps to a registered skill (e.g. notes, tenants, tags, deploys, MCP servers, rules) and that skill is not yet under .claude/skills/.
+description: Catalog, install, remove, and sync Claude Code skills via the Synapse Brain /skills proxy. Skills are plain directories under .claude/skills/ — no git submodules, no GitHub auth on the client. Use whenever the user asks which skills exist, wants to install/fetch/sync/remove a skill, or starts a task that would benefit from a registered skill that is not yet installed locally. Trigger proactively when a request maps to a known skill (e.g. notes, tenants, tags, deploys, MCP servers, rules) and that skill is not yet under .claude/skills/.
 ---
 
 # Skill Router
 
-Manages the set of skills available under `.claude/skills/`. Every skill is tracked as a **git submodule** of the parent repo, pointing at a standalone repo (by convention `PJ-SBN-593844/skill-<name>`). The router does three things:
+Manages the set of skills installed under `.claude/skills/`. Every skill is fetched from the **Synapse Brain `/skills` proxy**, which mirrors the private skill-* GitHub repos owned by the authoring organisation. The router does three things:
 
-1. Maintains a version-controlled **registry** (`registry.json`) that maps skill names to their repo URLs and descriptions.
-2. Wraps `git submodule add / deinit / update` so installing or removing a skill is a single command.
-3. Tells Claude, via its description, which skills exist in the org so the router can fetch them on demand.
+1. Lists the available catalog by calling `GET {BRAIN}/skills`.
+2. Installs a skill by downloading `GET {BRAIN}/skills/<name>/download` (a `.skill` zip) and unpacking it into `.claude/skills/<name>/`.
+3. Tells Claude, via its description, which skills exist so the router can fetch them on demand.
 
-## Why submodules + a registry
+## Why Brain as the source of truth
 
-- **Submodules** mean every clone of the parent repo can see exactly which version of each skill was in use when a commit was made. Skills evolve independently in their own repos; the parent repo pins a specific commit. Running `git submodule update --init --recursive` on a fresh clone brings in whatever skills were installed at that time.
-- **The registry** is a flat JSON file describing every known skill, whether installed locally or not. Claude reads it to decide which skill to fetch for a given task, without having to hit the GitHub API mid-conversation.
-- Listing skills in the registry does **not** install them. Installation is an explicit `install.sh <name>` step that adds a submodule entry to `.gitmodules` and checks the skill out.
+- Clients don't need a GitHub token. Brain holds the GitHub App credentials and proxies the bytes.
+- Skill repos can stay private. Only Brain needs read access.
+- The same API surface works from Claude Code (via these shell scripts) and from the claude.ai chat app (via `WebFetch`) — no git submodules, no auth round trips.
+- Skills on disk are plain directories. No `.gitmodules` to maintain, no pointer bumps to commit.
+
+## Configuration
+
+- `SYNAPSE_BRAIN_URL` — base URL of the Brain API. Defaults to `https://brain.tri2b.nba`. Override in local/dev environments.
 
 ## When to trigger
 
 Use the router when any of these apply:
 
-1. The user asks what skills exist, what's installed, or what's registered.
+1. The user asks what skills exist, what's installed, or what's available.
 2. The user asks to install / fetch / add / sync / update / remove / uninstall a skill.
-3. The user publishes a new skill (via `skill-creator`'s `publish_skill.sh`) and needs to record it in the registry.
-4. The user starts a task that clearly maps to a registered skill that is not yet installed. In that case: install the skill first, then let normal skill triggering pick it up.
+3. The user starts a task that clearly maps to a known skill that is not yet installed locally. Install it first, then let normal skill triggering pick it up.
 
 Do **not** trigger when the required skill is already installed — just let the normal skill system activate it.
 
 ## Repository conventions
 
-- By convention, skill `<name>` lives at `git@github.com:PJ-SBN-593844/skill-<name>.git` and is installed as a submodule at `.claude/skills/<name>/`. The `skill-` prefix is stripped on disk.
-- Every skill repo must have a top-level `SKILL.md` with YAML frontmatter.
+- Skill `<name>` is published as `<name>.skill` (a zip whose files are prefixed with `<name>/`) attached to a tagged GitHub Release on the `skill-<name>` repo.
 - `skill-creator` and `skill-router` are protected from removal; they must stay installed.
-
-## Registry
-
-`registry.json` holds the list of known skills. Each entry has:
-
-```json
-{
-  "name": "brain-notes",
-  "repo": "git@github.com:PJ-SBN-593844/skill-brain-notes.git",
-  "description": "Use when the user wants to create, read, update, delete, ..."
-}
-```
-
-When you add an entry, keep `description` close to the frontmatter description of the skill's `SKILL.md`. That way the router can explain the skill before installing it.
 
 ## Commands
 
-All scripts live under `scripts/` and must be run from the parent repo root.
+All scripts live under `scripts/` and are safe to run from any working directory inside the host repo.
 
 | Command | What it does |
 | --- | --- |
-| `scripts/catalog.sh [--json]` | Lists every skill in `registry.json` with install status (submodule present or not). |
-| `scripts/list_installed.sh` | Lists skills currently present as submodules under `.claude/skills/`. |
-| `scripts/install.sh <name>` | Looks up `<name>` in the registry and runs `git submodule add <url> .claude/skills/<name>`. No-op if already installed. |
-| `scripts/remove.sh <name>` | Runs `git submodule deinit` + `git rm` for that skill, and cleans `.git/modules/.claude/skills/<name>`. Refuses for `skill-creator` and `skill-router`. |
-| `scripts/sync.sh [<name>]` | Runs `git submodule update --remote --merge` on one or all installed skills. |
-| `scripts/register.sh <name> <repo-url> [--description "..."]` | Appends a new entry to `registry.json`. If `--description` is omitted, fetches the description from the repo's `SKILL.md` via `gh`. |
+| `scripts/catalog.sh [--json]` | Lists every skill returned by `GET /skills` with its local install status. |
+| `scripts/list_installed.sh` | Lists skill directories currently present under `.claude/skills/`. |
+| `scripts/install.sh <name>` | Downloads `<name>.skill` from Brain and unpacks it to `.claude/skills/<name>/`. Refuses if that path already exists. |
+| `scripts/remove.sh <name>` | Deletes `.claude/skills/<name>/`. Detects and tears down legacy git submodule entries if present. Refuses for `skill-creator` and `skill-router`. |
+| `scripts/sync.sh [<name>]` | Removes and re-installs the named skill, or every installed skill when no argument is passed. |
 
 ### Install flow
 
-1. Run `scripts/catalog.sh` to confirm the skill exists in the registry.
-2. If not, run `scripts/register.sh <name> <repo-url>` first.
-3. Run `scripts/install.sh <name>`.
-4. Commit the changes to `.gitmodules` and the new submodule reference in the parent repo. The harness will rescan `.claude/skills/` between turns and pick up the new skill.
+1. `scripts/catalog.sh` to confirm the skill is published.
+2. `scripts/install.sh <name>`.
+3. That's it — no commit to the parent repo. The harness will rescan `.claude/skills/` between turns and pick up the new skill.
 
 ### Remove flow
 
-1. Confirm with the user — removal rewrites `.gitmodules` and requires a parent-repo commit.
-2. Run `scripts/remove.sh <name>`.
-3. Commit the changes.
+1. `scripts/remove.sh <name>`.
+2. If a legacy git submodule entry is detected, it will be removed via `git submodule deinit` + `git rm` — in that case, commit the resulting `.gitmodules` change.
 
 ### Sync flow
 
 - `scripts/sync.sh` with no arguments updates every installed skill.
 - `scripts/sync.sh <name>` updates just that one.
-- Sync moves the submodule pointer to the remote's default branch tip. Commit the pointer bump afterwards if you want the parent repo to track the new version.
-
-### Register flow
-
-After publishing a new skill with `skill-creator`'s `publish_skill.sh`:
-
-1. `scripts/register.sh <name> git@github.com:PJ-SBN-593844/skill-<name>.git`
-2. Commit `registry.json`.
-3. Optionally `scripts/install.sh <name>` to immediately vendor it.
+- Sync always pulls the **latest release**; pin by not running sync, or use a specific Brain instance that lags behind production.
 
 ## Caveats
 
-- The router assumes `gh` is available and authenticated for registry operations that read from GitHub. Submodule add/remove/update do not need `gh`; they use plain `git`.
-- Submodules require `git submodule update --init --recursive` on fresh clones. Document that in the parent repo's README so new contributors pull skills without surprise.
-- `skill-creator`'s current `publish_skill.sh` also adds the published skill as a submodule directly. That still works under this model, but the registry must be updated afterwards so the router knows about it. Folding `register.sh` into the publish flow is a natural follow-up.
+- `curl`, `unzip`, and `jq` are required on the host for the scripts to work. All three are standard on devbox/macOS/Linux.
+- Brain must be reachable. If your environment can't hit `SYNAPSE_BRAIN_URL`, set the env var to a reachable instance (e.g. a port-forward).
+- If a skill doesn't appear in `catalog.sh`, it is either not published yet, not tagged with the `claude-skill` topic in its GitHub repo, or the Brain GitHub App doesn't have access to it.
+- Migrating from an older submodule-based install: run `scripts/remove.sh <name>` first (which detects and tears down the submodule), then `scripts/install.sh <name>`. Commit the `.gitmodules` change in the parent repo.
