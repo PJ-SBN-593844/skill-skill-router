@@ -20,7 +20,7 @@ Manages the set of skills installed under `.claude/skills/`. Every skill is fetc
 
 ## Configuration
 
-- `SYNAPSE_BRAIN_URL` — base URL of the Brain API. Defaults to `https://brain.tri2b.nba`. Override in local/dev environments.
+- `SYNAPSE_BRAIN_URL` — base URL of the Brain API. Defaults to `https://synapse.tri2b.cloud`. Override in local/dev environments.
 
 ## When to trigger
 

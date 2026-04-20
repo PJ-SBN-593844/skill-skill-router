@@ -12,7 +12,7 @@
 
 set -euo pipefail
 
-BRAIN_URL="${SYNAPSE_BRAIN_URL:-https://brain.tri2b.nba}"
+BRAIN_URL="${SYNAPSE_BRAIN_URL:-https://synapse.tri2b.cloud}"
 BRAIN_URL="${BRAIN_URL%/}"
 
 _SCRIPT_DIR_ENV="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"

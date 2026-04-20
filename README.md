@@ -9,7 +9,7 @@ Loaded by Claude Code when the description above matches the user's request. Ful
 The router is self-installing once any copy of `skill-router` lives under `.claude/skills/`. From any host repo:
 
 ```sh
-curl -fsSL https://brain.tri2b.nba/skills/skill-router/download -o /tmp/skill-router.skill
+curl -fsSL https://synapse.tri2b.cloud/skills/skill-router/download -o /tmp/skill-router.skill
 mkdir -p .claude/skills
 unzip -q /tmp/skill-router.skill -d .claude/skills
 ```
