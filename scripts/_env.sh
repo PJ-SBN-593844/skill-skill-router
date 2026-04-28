@@ -2,18 +2,18 @@
 # Shared helpers for skill-router scripts. Sourced, never executed.
 #
 # Provides:
-#   BRAIN_URL           — base URL for the Brain /skills proxy, overridable
-#                         via SYNAPSE_BRAIN_URL env var.
+#   SYNAPSE_URL           — base URL for the Synapse /skills proxy, overridable
+#                         via SYNAPSE_URL env var.
 #   SKILLS_DIR          — absolute path to .claude/skills/ in the host repo.
 #   PROTECTED_SKILLS    — array of skill names that must never be removed.
-#   brain_get <path>    — GET {BRAIN_URL}{path}, print body to stdout, exit on failure.
-#   brain_download <path> <dest>  — like brain_get, but streams to a file.
+#   synapse_get <path>    — GET {SYNAPSE_URL}{path}, print body to stdout, exit on failure.
+#   synapse_download <path> <dest>  — like synapse_get, but streams to a file.
 #   require_cmd <cmd>   — abort with a clear message if <cmd> is missing.
 
 set -euo pipefail
 
-BRAIN_URL="${SYNAPSE_BRAIN_URL:-https://synapse.tri2b.cloud}"
-BRAIN_URL="${BRAIN_URL%/}"
+SYNAPSE_URL="${SYNAPSE_URL:-https://synapse.tri2b.cloud}"
+SYNAPSE_URL="${SYNAPSE_URL%/}"
 
 _SCRIPT_DIR_ENV="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 SKILLS_DIR="$(cd "$_SCRIPT_DIR_ENV/../.." && pwd)"
@@ -28,9 +28,9 @@ require_cmd() {
   fi
 }
 
-brain_get() {
+synapse_get() {
   local path="$1"
-  local url="$BRAIN_URL$path"
+  local url="$SYNAPSE_URL$path"
   require_cmd curl
   if ! curl -fsSL --max-time 30 "$url"; then
     echo "[skill-router] GET $url failed" >&2
@@ -38,10 +38,10 @@ brain_get() {
   fi
 }
 
-brain_download() {
+synapse_download() {
   local path="$1"
   local dest="$2"
-  local url="$BRAIN_URL$path"
+  local url="$SYNAPSE_URL$path"
   require_cmd curl
   if ! curl -fsSL --max-time 120 -o "$dest" "$url"; then
     echo "[skill-router] download $url failed" >&2

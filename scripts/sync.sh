@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Update installed skills to the latest .skill release on Brain.
+# Update installed skills to the latest .skill release on Synapse.
 #
 # Usage:
 #   scripts/sync.sh            # update every installed skill

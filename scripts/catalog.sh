@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
-# List every skill available from the Brain /skills proxy, with local
+# List every skill available from the Synapse /skills proxy, with local
 # install status.
 #
-# Source of truth: GET {BRAIN_URL}/skills. The "installed" column
+# Source of truth: GET {SYNAPSE_URL}/skills. The "installed" column
 # reflects whether a directory with that name exists under
 # .claude/skills/.
 #
 # Usage:
 #   scripts/catalog.sh            # human-readable table
-#   scripts/catalog.sh --json     # Brain response + installed flags
+#   scripts/catalog.sh --json     # Synapse response + installed flags
 
 set -euo pipefail
 
@@ -30,7 +30,7 @@ for name in $INSTALLED_NAMES; do
   FLAGS_JSON="$(printf '%s' "$FLAGS_JSON" | jq --arg n "$name" '. + {($n): true}')"
 done
 
-RESPONSE="$(brain_get /skills)"
+RESPONSE="$(synapse_get /skills)"
 
 ENRICHED="$(printf '%s' "$RESPONSE" | jq --argjson flags "$FLAGS_JSON" '
   .skills |= map(. + {installed: ($flags[.name] // false)})

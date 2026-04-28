@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Install a skill from the Brain /skills proxy.
+# Install a skill from the Synapse /skills proxy.
 #
 # Usage:
 #   scripts/install.sh <name>
 #
-# Downloads GET {BRAIN_URL}/skills/<name>/download (a zip where files
+# Downloads GET {SYNAPSE_URL}/skills/<name>/download (a zip where files
 # are prefixed with <name>/) and unpacks it into .claude/skills/. The
 # skill is installed as a plain directory — there is no git submodule
 # to commit in the parent repo.
@@ -32,8 +32,8 @@ fi
 TMP="$(mktemp -t "skill-${NAME}.XXXXXX.skill")"
 trap 'rm -f "$TMP"' EXIT
 
-echo "[skill-router] downloading $NAME from $BRAIN_URL"
-if ! brain_download "/skills/$NAME/download" "$TMP"; then
+echo "[skill-router] downloading $NAME from $SYNAPSE_URL"
+if ! synapse_download "/skills/$NAME/download" "$TMP"; then
   exit 1
 fi
 
